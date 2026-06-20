@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/samples/">
+    <Project Path="samples/VoyageAI.Sdk.Samples/VoyageAI.Sdk.Samples.csproj" />
+    <Project Path="samples/VoyageAI.Sdk.Samples.MongoDBRAG/VoyageAI.Sdk.Samples.MongoDBRAG.csproj" />
+  </Folder>
+  <Folder Name="/src/">
+    <Project Path="src/VoyageAI.Sdk.Abstractions/VoyageAI.Sdk.Abstractions.csproj" />
+    <Project Path="src/VoyageAI.Sdk/VoyageAI.Sdk.csproj" />
+    <Project Path="src/VoyageAI.Microsoft.Extensions.AI/VoyageAI.Microsoft.Extensions.AI.csproj" />
+    <Project Path="src/VoyageAI.AgentFramework/VoyageAI.AgentFramework.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/VoyageAI.Sdk.IntegrationTests/VoyageAI.Sdk.IntegrationTests.csproj" />
+    <Project Path="tests/VoyageAI.Sdk.UnitTests/VoyageAI.Sdk.UnitTests.csproj" />
+    <Project Path="tests/VoyageAI.Microsoft.Extensions.AI.UnitTests/VoyageAI.Microsoft.Extensions.AI.UnitTests.csproj" />
+    <Project Path="tests/VoyageAI.AgentFramework.UnitTests/VoyageAI.AgentFramework.UnitTests.csproj" />
+  </Folder>
+</Solution>

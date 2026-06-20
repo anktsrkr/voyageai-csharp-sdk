@@ -1,0 +1,26 @@
+## .NET & Visual Studio
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.vs/
+.vscode/
+.idea/
+*.DotSettings.user
+TestResults/
+.agents/
+plans/
+
+## NuGet
+*.nupkg
+*.snupkg
+artifacts/
+packages/
+*.nuget.props
+*.nuget.targets
+
+## OS
+Thumbs.db
+.DS_Store
+nul

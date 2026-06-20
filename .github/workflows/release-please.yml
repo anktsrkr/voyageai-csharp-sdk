@@ -1,0 +1,105 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Trunk-based CD pipeline with release-please.
+#
+#  Trigger : push to main
+#
+#  Flow    : 1. release-please analyses conventional commits on main
+#            2. Either opens a draft Release PR (version bump + changelog)
+#               or creates a GitHub Release with tag v<semver>
+#            3. If no release was created  → prerelease job publishes
+#               X.Y.Z-pre.<sha> to NuGet.org
+#            4. If a release WAS created   → publish.yml is triggered
+#               separately via release:published event
+#
+#  Auth    : NuGet Trusted Publishing (OIDC) — no API keys required.
+#             Requires a GitHub Environment "nuget.org" with trusted publishing
+#             configured on nuget.org. See:
+#             https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write          # Required for NuGet Trusted Publishing (OIDC)
+
+jobs:
+  # ── release-please orchestrator ────────────────────────────────────────────
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      releases_created: ${{ steps.release.outputs.releases_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: google-github-actions/release-please-action@v4
+        id: release
+        with:
+          config-file: .github/release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # ── Prerelease channel ─────────────────────────────────────────────────────
+  # Publishes a prerelease NuGet package on every main push where release-please
+  # did NOT create a stable release. Version format: <manifest-version>-pre.<sha>
+  prerelease:
+    needs: release-please
+    if: needs.release-please.outputs.releases_created == 'false'
+    runs-on: ubuntu-latest
+    environment: nuget.org        # Trusted Publishing: links OIDC to nuget.org
+    permissions:
+      contents: read
+      id-token: write            # Issue OIDC token for nuget.org
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Determine prerelease version
+        id: prerelease-version
+        run: |
+          VERSION=$(jq -r '."."' .release-please-manifest.json)
+          PRE_VERSION="${VERSION}-pre.${GITHUB_SHA:0:7}"
+          echo "version=${PRE_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+            8.0.x
+
+      - name: Restore
+        run: dotnet restore VoyageAI.Sdk.slnx
+
+      - name: Build
+        run: >
+          dotnet build VoyageAI.Sdk.slnx
+          --configuration Release
+          -p:Version=${{ steps.prerelease-version.outputs.version }}
+
+      - name: Test
+        run: >
+          dotnet test VoyageAI.Sdk.slnx
+          --configuration Release
+          --no-build
+          --filter "Category!=Integration"
+
+      - name: Pack
+        run: >
+          dotnet pack VoyageAI.Sdk.slnx
+          --configuration Release
+          --no-build
+          -p:Version=${{ steps.prerelease-version.outputs.version }}
+          -p:PackageVersion=${{ steps.prerelease-version.outputs.version }}
+          --output ./artifacts
+
+      - name: Set up NuGet CLI
+        uses: nuget/setup-nuget@v2
+
+      - name: Publish to NuGet.org (prerelease)
+        run: >
+          dotnet nuget push ./artifacts/*.nupkg
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate

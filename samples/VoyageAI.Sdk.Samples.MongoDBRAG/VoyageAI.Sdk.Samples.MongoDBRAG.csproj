@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <IsPackable>false</IsPackable>
+    <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    <RootNamespace>VoyageAI.Samples.RerankRAG</RootNamespace>
+    <AssemblyName>VoyageAI.Sdk.Samples.MongoDBRAG</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>$(NoWarn);NU1901;NU1902;NU1903;NU1904;NU1603;CS1591</NoWarn>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="MongoDB.Driver" />
+    <PackageReference Include="Microsoft.Agents.AI" />
+    <PackageReference Include="Microsoft.Extensions.AI" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\VoyageAI.Sdk\VoyageAI.Sdk.csproj" />
+    <!-- Adds AddVoyageEmbeddingGenerator(): an IEmbeddingGenerator<string, Embedding<float>>
+         over the Voyage client, used here as the query-time embedder. This is the keystone
+         integration from VoyageAI.Microsoft.Extensions.AI — the sample demonstrates how the
+         generator plugs into a RAG retrieval flow. -->
+    <ProjectReference Include="..\..\src\VoyageAI.Microsoft.Extensions.AI\VoyageAI.Microsoft.Extensions.AI.csproj" />
+    <!-- Agent Framework integration: UseVoyageRag + IVoyageRagSearcher<T> collapse the
+         ~80-line search/rerank SearchAdapter into a MongoVoyageSearcher class + one wiring
+         call. Provides IVoyageRagSearcher<T>, VoyageReranker, and the UseVoyageRag extension. -->
+    <ProjectReference Include="..\..\src\VoyageAI.AgentFramework\VoyageAI.AgentFramework.csproj" />
+  </ItemGroup>
+
+</Project>

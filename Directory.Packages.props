@@ -1,0 +1,39 @@
+<Project>
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Microsoft.Extensions.* — used by main library -->
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="10.7.0" />
+    <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.9" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
+    <!-- System.Text.Json — bundled with .NET 10, but pin for netstandard2.0 -->
+    <PackageVersion Include="System.Text.Json" Version="10.0.9" />
+    <!-- RAG Sample packages -->
+    <PackageVersion Include="MongoDB.Driver" Version="3.9.0" />
+    <PackageVersion Include="Microsoft.Agents.AI" Version="1.10.0" />
+    <PackageVersion Include="Microsoft.Agents.AI.Abstractions" Version="1.10.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.7.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.7.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.7.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Test projects only -->
+    <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.6.0" />
+    <PackageVersion Include="xunit" Version="2.9.3" />
+    <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.5" />
+    <PackageVersion Include="FluentAssertions" Version="8.10.0" />
+    <PackageVersion Include="RichardSzalay.MockHttp" Version="7.0.0" />
+    <PackageVersion Include="coverlet.collector" Version="10.0.1" />
+    <!-- Polly — referenced directly by the circuit-open test for BrokenCircuitException.
+         Pinned to the 8.4.2 that Microsoft.Extensions.Http.Resilience 10.0.0 resolves transitively
+         (Polly.Core/Polly.Extensions/Polly.RateLimiting all 8.4.2), so no additional version is introduced. -->
+    <PackageVersion Include="Polly" Version="8.7.0" />
+  </ItemGroup>
+</Project>

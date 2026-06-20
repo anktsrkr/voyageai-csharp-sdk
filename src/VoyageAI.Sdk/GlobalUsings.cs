@@ -1,0 +1,23 @@
+// Global usings for the VoyageAI.Sdk main library.
+global using System;
+global using System.Collections.Generic;
+global using System.Linq;
+global using System.Net;
+global using System.Net.Http;
+global using System.Net.Http.Headers;
+global using System.Net.Http.Json;
+global using System.Runtime.CompilerServices;
+global using System.Text.Json;
+global using System.Text.Json.Serialization;
+global using System.Threading;
+global using System.Threading.RateLimiting;
+global using System.Threading.Tasks;
+global using Microsoft.Extensions.Configuration;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.DependencyInjection.Extensions;
+global using Microsoft.Extensions.Http;
+global using Microsoft.Extensions.Http.Resilience;
+global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Options;
+global using Polly;
+global using VoyageAI.Models;

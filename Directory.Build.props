@@ -1,0 +1,39 @@
+<Project>
+
+  <PropertyGroup>
+    <LangVersion>latest</LangVersion>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NeutralLanguage>en</NeutralLanguage>
+    <Authors>VoyageAI.Sdk Contributors</Authors>
+    <Company>VoyageAI.Sdk</Company>
+    <Product>VoyageAI.Sdk</Product>
+    <Copyright>Copyright © $([System.DateTime]::UtcNow.Year)</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/anktsrkr/voyageai-csharp-sdk</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/anktsrkr/voyageai-csharp-sdk</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <Deterministic>true</Deterministic>
+    <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
+    <!--
+      Version is managed by release-please. When a release PR is merged,
+      release-please updates the <Version> below and the manifest.
+      For CI-only builds the Version property is overridden via /p:Version=...
+      -->
+    <Version>1.0.0</Version>
+    <!-- AssemblyVersion / FileVersion are intentionally *not* tied to the
+         NuGet version so that binding redirects stay stable across patches. -->
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.csproj' AND '$(IsTestProject)' != 'true'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+</Project>

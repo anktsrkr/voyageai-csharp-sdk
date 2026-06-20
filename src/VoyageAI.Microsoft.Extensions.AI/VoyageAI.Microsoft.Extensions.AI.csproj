@@ -1,0 +1,47 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      MEAI integration package. Adapts the Voyage AI embeddings client to the
+      Microsoft.Extensions.AI IEmbeddingGenerator<string, Embedding<float>> abstraction,
+      so Voyage plugs into the standard .NET AI composition model (caching, batching,
+      logging, OpenTelemetry, MongoDB auto-embedding, VectorData, etc.).
+      Targets match the main SDK so a single test matrix covers both.
+    -->
+    <TargetFrameworks>net10.0;net8.0</TargetFrameworks>
+    <PackageId>VoyageAI.Microsoft.Extensions.AI</PackageId>
+    <Description>Microsoft.Extensions.AI integration for the Voyage AI .NET SDK. Implements IEmbeddingGenerator&lt;string, Embedding&lt;float&gt;&gt; over Voyage text embeddings, so Voyage plugs into the standard .NET AI composition model (caching, batching, logging, OpenTelemetry, MongoDB auto-embedding, VectorData).</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>voyageai;embeddings;microsoft.extensions.ai;meai;vector;semantic-search;ai</PackageTags>
+    <IsPackable>true</IsPackable>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <IsTrimmable>true</IsTrimmable>
+    <RootNamespace>VoyageAI</RootNamespace>
+    <AssemblyName>VoyageAI.Microsoft.Extensions.AI</AssemblyName>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <IsAotCompatible>true</IsAotCompatible>
+    <TrimMode>full</TrimMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Abstractions only: the generator implements these without pulling the full MEAI runtime.
+         DI builder support lives in the runtime (Microsoft.Extensions.AI), referenced below. -->
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.AI" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\VoyageAI.Sdk\VoyageAI.Sdk.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,25 @@
+// Global usings for the unit-test assembly.
+global using System;
+global using System.Collections.Generic;
+global using System.Linq;
+global using System.Net;
+global using System.Net.Http;
+global using System.Net.Http.Headers;
+global using System.Net.Mime;
+global using System.Text;
+global using System.Text.Json;
+global using System.Threading;
+global using System.Threading.Tasks;
+global using FluentAssertions;
+global using Microsoft.Extensions.DependencyInjection;
+global using Microsoft.Extensions.Logging;
+global using Microsoft.Extensions.Options;
+global using RichardSzalay.MockHttp;
+global using VoyageAI;
+global using VoyageAI.Clients;
+global using VoyageAI.Configuration;
+global using VoyageAI.Http;
+global using VoyageAI.Internal;
+global using VoyageAI.Models;
+global using VoyageAI.Serialization;
+global using Xunit;

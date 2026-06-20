@@ -1,0 +1,37 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      Abstractions package — interfaces + shared DTOs + enums + exceptions only.
+      No HttpClient, no Polly, no heavy Microsoft.Extensions.* runtime dependencies,
+      so consumers can reference the contracts (e.g. for mocking) without pulling
+      in the full client runtime.
+      Targets match the main SDK so a single test matrix covers both.
+    -->
+    <TargetFrameworks>net10.0;net8.0</TargetFrameworks>
+    <PackageId>VoyageAI.Sdk.Abstractions</PackageId>
+    <Description>Contracts (interfaces and shared models) for the Voyage AI .NET SDK. Reference this package when you only need the interfaces — for example, for mocking or library authoring — without pulling in the full client runtime.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>voyageai;embeddings;rerank;multimodal;abstractions;contracts</PackageTags>
+    <IsPackable>true</IsPackable>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <IsTrimmable>true</IsTrimmable>
+    <RootNamespace>VoyageAI</RootNamespace>
+    <AssemblyName>VoyageAI.Sdk.Abstractions</AssemblyName>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <IsAotCompatible>true</IsAotCompatible>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- System.Text.Json is in the framework for net8+, but we pin for version alignment of the JSON attributes. -->
+    <PackageReference Include="System.Text.Json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+</Project>

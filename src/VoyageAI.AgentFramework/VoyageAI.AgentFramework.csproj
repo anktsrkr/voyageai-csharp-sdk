@@ -1,0 +1,56 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!--
+      Agent Framework integration package. Composes a transport-agnostic search
+      delegate (IVoyageRagSearcher<T>) with the Voyage reranker (IVoyageReranker) and
+      hands the result to Microsoft Agent Framework's TextSearchProvider, then wires it
+      into the three RAG entry points: ChatClientAgentOptions, AIAgentBuilder, and
+      ChatClientBuilder. Targets match the main SDK so a single test matrix covers both.
+    -->
+    <TargetFrameworks>net10.0;net8.0</TargetFrameworks>
+    <PackageId>VoyageAI.AgentFramework</PackageId>
+    <Description>Microsoft Agent Framework integration for the Voyage AI .NET SDK. Composes a search stage (IVoyageRagSearcher&lt;T&gt;) with the Voyage reranker and wires the result into TextSearchProvider for RAG on ChatClientAgentOptions, AIAgentBuilder, and ChatClientBuilder.</Description>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageTags>voyageai;rerank;rag;retrieval;agents;microsoft.agents.ai;agent-framework;context-provider;vector-search</PackageTags>
+    <IsPackable>true</IsPackable>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <IsTrimmable>true</IsTrimmable>
+    <RootNamespace>VoyageAI</RootNamespace>
+    <AssemblyName>VoyageAI.AgentFramework</AssemblyName>
+  </PropertyGroup>
+
+  <!-- net10.0 target: full trimming + AOT compatibility -->
+  <PropertyGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <IsAotCompatible>true</IsAotCompatible>
+    <TrimMode>full</TrimMode>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Abstractions only: the factory builds the TextSearchProvider delegate and the
+         extension methods touch only the Agent Framework surface, without pulling the
+         full runtime into the composition graph. -->
+    <PackageReference Include="Microsoft.Agents.AI.Abstractions" />
+    <PackageReference Include="Microsoft.Agents.AI" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\VoyageAI.Sdk\VoyageAI.Sdk.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\LICENSE" Pack="true" PackagePath="\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Exposes the internal RunPipeline test seam (TextSearchProvider.SearchAsync is itself
+         internal in the Agent Framework, so the pipeline can't be driven through the built
+         provider). Compile-time only; no runtime or behavioral impact for consumers. -->
+    <InternalsVisibleTo Include="VoyageAI.AgentFramework.UnitTests" />
+  </ItemGroup>
+
+</Project>

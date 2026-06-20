@@ -1,0 +1,77 @@
+# ──────────────────────────────────────────────────────────────────────────────
+# Publish stable NuGet packages.
+#
+#  Trigger : GitHub Release published (tag v<semver>)
+#
+#  Auth    : NuGet Trusted Publishing (OIDC) — no API keys required.
+#             Requires a GitHub Environment "nuget.org" with trusted publishing
+#             configured on nuget.org. See:
+#             https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing
+#
+#  This workflow is triggered in two scenarios:
+#    1. release-please creates a GitHub Release → release:published fires
+#    2. Manual GitHub Release created for the initial v1.0.0
+# ──────────────────────────────────────────────────────────────────────────────
+
+name: Publish
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write            # Issue OIDC token for NuGet Trusted Publishing
+
+jobs:
+  publish-stable:
+    runs-on: ubuntu-latest
+    environment: nuget.org    # Trusted Publishing: links OIDC to nuget.org
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: stable-version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+            8.0.x
+
+      - name: Restore
+        run: dotnet restore VoyageAI.Sdk.slnx
+
+      - name: Build
+        run: >
+          dotnet build VoyageAI.Sdk.slnx
+          --configuration Release
+          -p:Version=${{ steps.stable-version.outputs.version }}
+
+      - name: Test
+        run: >
+          dotnet test VoyageAI.Sdk.slnx
+          --configuration Release
+          --no-build
+          --filter "Category!=Integration"
+
+      - name: Pack
+        run: >
+          dotnet pack VoyageAI.Sdk.slnx
+          --configuration Release
+          --no-build
+          -p:PackageVersion=${{ steps.stable-version.outputs.version }}
+          --output ./artifacts
+
+      - name: Set up NuGet CLI
+        uses: nuget/setup-nuget@v2
+
+      - name: Publish to NuGet.org (stable)
+        run: >
+          dotnet nuget push ./artifacts/*.nupkg
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
