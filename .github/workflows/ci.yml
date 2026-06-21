@@ -18,15 +18,14 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest]
-        tf: ['8.0', '10.0']
+        tf: ['10.0']
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: |
-            ${{ matrix.tf == '10.0' && '10.0.x' || '8.0.x' }}
+          dotnet-version: 10.0.x
 
       - name: Restore dependencies
         run: dotnet restore VoyageAI.Sdk.slnx
