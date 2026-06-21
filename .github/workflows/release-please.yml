@@ -1,7 +1,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # Trunk-based CD pipeline with release-please.
 #
-#  Trigger : push to main
+#  Trigger : push to main  |  workflow_dispatch (manual publish of existing tag)
 #
 #  Flow    : 1. release-please analyses conventional commits on main
 #            2. Either opens a draft Release PR (version bump + changelog)
@@ -9,8 +9,18 @@
 #            3. If no release was created  → prerelease job publishes
 #               X.Y.(Z+1)-pre.<sha> to NuGet.org (patch-bumped so it
 #               sorts above current stable; see prerelease-version step)
-#            4. If a release WAS created   → publish.yml is triggered
-#               separately via release:published event
+#            4. If a release WAS created   → publish-stable job (below)
+#               builds/tests/packs/pushes v<semver> to NuGet.org.
+#            5. workflow_dispatch          → publish-stable job resolves the
+#               latest release tag and publishes it. Used once for the bootstrap
+#               v1.0.0 (which release-please already created on initial push).
+#
+#  Why publish lives here, not in publish.yml:
+#    GitHub deliberately suppresses events raised by the default GITHUB_TOKEN
+#    to prevent recursive workflows. release-please creates releases using
+#    GITHUB_TOKEN, so a `release: published` trigger in a separate workflow
+#    would never fire. Keeping the publish step in this workflow, gated on the
+#    release-please job's output, sidesteps the suppression entirely.
 #
 #  Auth    : NuGet OIDC login (NuGet/login@v1) — no API keys required.
 #             Requires a federated credential configured on your NuGet.org
@@ -25,6 +35,8 @@ on:
     branches: [main]
     paths-ignore:
       - samples/**
+  workflow_dispatch:        # Allows manually publishing an existing release tag
+                             # (e.g. bootstrap v1.0.0 that release-please already created).
 
 permissions:
   contents: write
@@ -50,7 +62,7 @@ jobs:
   # did NOT create a stable release. Version format: <manifest-version>-pre.<sha>
   prerelease:
     needs: release-please
-    if: needs.release-please.outputs.releases_created == 'false'
+    if: github.event_name == 'push' && needs.release-please.outputs.releases_created == 'false'
     runs-on: ubuntu-latest
     environment: nuget-prerelease   # GitHub Environment: no protection rules,
                                    # auto-publishes on every push to main.
@@ -127,6 +139,88 @@ jobs:
 
       - name: Publish to NuGet.org (prerelease)
         if: steps.prerelease-version.outputs.skip != 'true'
+        run: >
+          dotnet nuget push ./artifacts/*.nupkg
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
+
+  # ── Stable release channel ─────────────────────────────────────────────────
+  # Publishes stable packages when release-please creates a release, OR when
+  # triggered manually via workflow_dispatch (e.g. to publish the bootstrap
+  # v1.0.0 release that release-please already created on the initial push).
+  #
+  # NOTE: This job lives in release-please.yml (not a separate publish.yml)
+  # because events raised by the default GITHUB_TOKEN are deliberately
+  # suppressed by GitHub to prevent recursive workflows. A release:published
+  # trigger from a separate workflow would never fire — release-please creates
+  # releases using GITHUB_TOKEN. Running the publish step here, gated on the
+  # release-please job's output, avoids the cross-workflow event entirely.
+  publish-stable:
+    needs: release-please
+    if: needs.release-please.outputs.releases_created == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: nuget-stable       # GitHub Environment: requires human approval.
+    permissions:
+      contents: read
+      id-token: write            # Issue OIDC token for NuGet/login@v1
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: stable-version
+        run: |
+          # On workflow_dispatch, read the version from the latest release tag
+          # (release-please may not have created one in this run). On a normal
+          # push where release-please created a release, use its tag.
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG=$(gh release list --limit 1 --json tagName --jq '.[0].tagName')
+          else
+            TAG="${{ needs.release-please.outputs.tag_name }}"
+          fi
+          VERSION="${TAG#v}"
+          echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+            8.0.x
+
+      - name: Restore
+        run: dotnet restore VoyageAI.Sdk.slnx
+
+      - name: Build
+        run: >
+          dotnet build VoyageAI.Sdk.slnx
+          --configuration Release
+          -p:Version=${{ steps.stable-version.outputs.version }}
+
+      - name: Test
+        run: >
+          dotnet test VoyageAI.Sdk.slnx
+          --configuration Release
+          --no-build
+          --filter "Category!=Integration"
+
+      - name: Pack
+        run: >
+          dotnet pack VoyageAI.Sdk.slnx
+          --configuration Release
+          --no-build
+          -p:PackageVersion=${{ steps.stable-version.outputs.version }}
+          --output ./artifacts
+
+      - name: NuGet login
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER || github.repository_owner }}
+
+      - name: Publish to NuGet.org (stable)
         run: >
           dotnet nuget push ./artifacts/*.nupkg
           --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
