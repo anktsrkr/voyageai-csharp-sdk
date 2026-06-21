@@ -35,14 +35,15 @@ jobs:
         run: dotnet build VoyageAI.Sdk.slnx --configuration Release -p:TreatWarningsAsErrors=true
 
       - name: Run unit tests
-        run: dotnet test VoyageAI.Sdk.slnx \
-          --configuration Release \
-          --no-build \
-          --framework net${{ matrix.tf }} \
-          --filter "Category!=Integration" \
-          -p:CollectCoverage=true \
-          -p:CoverletOutputFormat=cobertura \
-          -p:CoverletOutput=./coverage/ \
+        run: >-
+          dotnet test VoyageAI.Sdk.slnx
+          --configuration Release
+          --no-build
+          --framework net${{ matrix.tf }}
+          --filter "Category!=Integration"
+          -p:CollectCoverage=true
+          -p:CoverletOutputFormat=cobertura
+          -p:CoverletOutput=./coverage/
           --logger "trx;LogFileName=test-results.trx"
 
       - name: Upload test results on failure
@@ -68,8 +69,9 @@ jobs:
             8.0.x
 
       - name: Pack (dry-run validation)
-        run: dotnet pack VoyageAI.Sdk.slnx \
-          --configuration Release \
+        run: >-
+          dotnet pack VoyageAI.Sdk.slnx
+          --configuration Release
           --output ./artifacts
 
       - name: List packages

@@ -3,10 +3,10 @@
 #
 #  Trigger : GitHub Release published (tag v<semver>)
 #
-#  Auth    : NuGet Trusted Publishing (OIDC) — no API keys required.
-#             Requires a GitHub Environment "nuget.org" with trusted publishing
-#             configured on nuget.org. See:
-#             https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing
+#  Auth    : NuGet OIDC login (NuGet/login@v1) — no API keys required.
+#             Requires a federated credential configured on your NuGet.org
+#             account matching this repo + workflow. See:
+#             https://learn.microsoft.com/en-us/nuget/nuget-org/github-actions
 #
 #  This workflow is triggered in two scenarios:
 #    1. release-please creates a GitHub Release → release:published fires
@@ -21,12 +21,13 @@ on:
 
 permissions:
   contents: read
-  id-token: write            # Issue OIDC token for NuGet Trusted Publishing
+  id-token: write            # Issue OIDC token for NuGet/login@v1
 
 jobs:
   publish-stable:
     runs-on: ubuntu-latest
-    environment: nuget.org    # Trusted Publishing: links OIDC to nuget.org
+    environment: nuget-stable       # GitHub Environment: requires human approval.
+                                   # Restricted to release: published (i.e. v* tags).
     steps:
       - uses: actions/checkout@v4
 
@@ -67,11 +68,15 @@ jobs:
           -p:PackageVersion=${{ steps.stable-version.outputs.version }}
           --output ./artifacts
 
-      - name: Set up NuGet CLI
-        uses: nuget/setup-nuget@v2
+      - name: NuGet login
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER || github.repository_owner }}
 
       - name: Publish to NuGet.org (stable)
         run: >
           dotnet nuget push ./artifacts/*.nupkg
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
           --source https://api.nuget.org/v3/index.json
           --skip-duplicate

@@ -7,14 +7,15 @@
 #            2. Either opens a draft Release PR (version bump + changelog)
 #               or creates a GitHub Release with tag v<semver>
 #            3. If no release was created  → prerelease job publishes
-#               X.Y.Z-pre.<sha> to NuGet.org
+#               X.Y.(Z+1)-pre.<sha> to NuGet.org (patch-bumped so it
+#               sorts above current stable; see prerelease-version step)
 #            4. If a release WAS created   → publish.yml is triggered
 #               separately via release:published event
 #
-#  Auth    : NuGet Trusted Publishing (OIDC) — no API keys required.
-#             Requires a GitHub Environment "nuget.org" with trusted publishing
-#             configured on nuget.org. See:
-#             https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing
+#  Auth    : NuGet OIDC login (NuGet/login@v1) — no API keys required.
+#             Requires a federated credential configured on your NuGet.org
+#             account matching this repo + workflow. See:
+#             https://learn.microsoft.com/en-us/nuget/nuget-org/github-actions
 # ──────────────────────────────────────────────────────────────────────────────
 
 name: Release
@@ -22,11 +23,13 @@ name: Release
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - samples/**
 
 permissions:
   contents: write
   pull-requests: write
-  id-token: write          # Required for NuGet Trusted Publishing (OIDC)
+  id-token: write          # Required for NuGet/login@v1 to mint OIDC token
 
 jobs:
   # ── release-please orchestrator ────────────────────────────────────────────
@@ -49,10 +52,11 @@ jobs:
     needs: release-please
     if: needs.release-please.outputs.releases_created == 'false'
     runs-on: ubuntu-latest
-    environment: nuget.org        # Trusted Publishing: links OIDC to nuget.org
+    environment: nuget-prerelease   # GitHub Environment: no protection rules,
+                                   # auto-publishes on every push to main.
     permissions:
       contents: read
-      id-token: write            # Issue OIDC token for nuget.org
+      id-token: write            # Issue OIDC token for NuGet/login@v1
     steps:
       - uses: actions/checkout@v4
 
@@ -60,10 +64,25 @@ jobs:
         id: prerelease-version
         run: |
           VERSION=$(jq -r '."."' .release-please-manifest.json)
-          PRE_VERSION="${VERSION}-pre.${GITHUB_SHA:0:7}"
+          if [ "$VERSION" = "0.0.0" ]; then
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            echo "Bootstrap state (0.0.0) — skipping prerelease to keep feed clean."
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+          # Bump patch so the prerelease sorts ABOVE current stable (SemVer):
+          #   1.0.0 -> 1.0.1-pre.<sha>  (> 1.0.0, < 1.0.1/1.1.0/2.0.0)
+          # Otherwise "1.0.0-pre.<sha>" sorts BELOW 1.0.0 and NuGet treats it
+          # as a downgrade from stable.
+          MAJOR=$(echo "$VERSION" | cut -d. -f1)
+          MINOR=$(echo "$VERSION" | cut -d. -f2)
+          PATCH=$(echo "$VERSION" | cut -d. -f3)
+          NEXT_PATCH=$((PATCH + 1))
+          PRE_VERSION="${MAJOR}.${MINOR}.${NEXT_PATCH}-pre.${GITHUB_SHA:0:7}"
           echo "version=${PRE_VERSION}" >> "$GITHUB_OUTPUT"
 
       - name: Set up .NET
+        if: steps.prerelease-version.outputs.skip != 'true'
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: |
@@ -71,15 +90,18 @@ jobs:
             8.0.x
 
       - name: Restore
+        if: steps.prerelease-version.outputs.skip != 'true'
         run: dotnet restore VoyageAI.Sdk.slnx
 
       - name: Build
+        if: steps.prerelease-version.outputs.skip != 'true'
         run: >
           dotnet build VoyageAI.Sdk.slnx
           --configuration Release
           -p:Version=${{ steps.prerelease-version.outputs.version }}
 
       - name: Test
+        if: steps.prerelease-version.outputs.skip != 'true'
         run: >
           dotnet test VoyageAI.Sdk.slnx
           --configuration Release
@@ -87,6 +109,7 @@ jobs:
           --filter "Category!=Integration"
 
       - name: Pack
+        if: steps.prerelease-version.outputs.skip != 'true'
         run: >
           dotnet pack VoyageAI.Sdk.slnx
           --configuration Release
@@ -95,11 +118,17 @@ jobs:
           -p:PackageVersion=${{ steps.prerelease-version.outputs.version }}
           --output ./artifacts
 
-      - name: Set up NuGet CLI
-        uses: nuget/setup-nuget@v2
+      - name: NuGet login
+        if: steps.prerelease-version.outputs.skip != 'true'
+        id: login
+        uses: NuGet/login@v1
+        with:
+          user: ${{ vars.NUGET_USER || github.repository_owner }}
 
       - name: Publish to NuGet.org (prerelease)
+        if: steps.prerelease-version.outputs.skip != 'true'
         run: >
           dotnet nuget push ./artifacts/*.nupkg
+          --api-key "${{ steps.login.outputs.NUGET_API_KEY }}"
           --source https://api.nuget.org/v3/index.json
           --skip-duplicate
